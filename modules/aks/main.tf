@@ -7,7 +7,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   default_node_pool {
     name       = "default"
     node_count = var.node_count
-    vm_size    = "Standard_B2ms"  # ✅ 2 vCPUs, 8 GB RAM - passes AKS requirements
+    vm_size    = "Standard_B2ms"  
   }
 
   identity {

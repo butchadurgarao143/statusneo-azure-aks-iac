@@ -28,3 +28,37 @@ git add .
 git commit -m "Initial commit for Alpheya AKS Terraform setup"
 git branch -M main
 git push -u origin main
+
+
+
+====================================
+
+# 1. Initialize Azure CLI (already logged in from dev step)
+az login
+az login --tenant 0d86ebca-48d5-4826-8189-d00318a494f8
+
+# 2. (Skip resource group & storage creation if already done)
+
+# 3. Create backend-prod.tfvars
+cat <<EOF > backend-prod.tfvars
+storage_account_name = "alpheyatfstate01"
+container_name       = "tfstate-container"
+key                  = "prod.terraform.tfstate"
+resource_group_name  = "alpheya-tfstate-rg"
+EOF
+
+# 4. Navigate to the prod environment and run Terraform commands
+cd ./envs/prod
+terraform init -backend-config=../backend-prod.tfvars
+terraform plan
+terraform apply
+
+# 5. Push code to GitHub
+git add backend-prod.tfvars \
+        envs/prod/main.tf \
+        envs/prod/provider.tf \
+        envs/prod/variables.tf \
+        envs/prod/versions.tf
+
+git commit -m "Initial commit for Alpheya AKS Terraform Production setup"
+git push origin main
