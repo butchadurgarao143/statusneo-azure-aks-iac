@@ -1,102 +1,86 @@
-name: Terraform CI/CD for AKS
+name: Terraform CI/CD
 
 on:
-  pull_request:
-    branches: [main]
   push:
-    branches: [main]
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
 
 env:
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  ARM_USE_OIDC: true
+  TF_IN_AUTOMATION: true
 
 jobs:
-  validate-plan:
-    name: Terraform Validate & Plan
+  terraform:
+    name: Terraform Workflow
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
 
     strategy:
       matrix:
         environment: [dev, prod]
 
+    defaults:
+      run:
+        working-directory: ./envs/${{ matrix.environment }}
+
     steps:
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Log in to Azure
+      - name: Azure Login with OIDC
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Setup Terraform
+      - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.7
+
+      - name: Terraform Format
+        run: terraform fmt -check
 
       - name: Terraform Init
-        run: terraform -chdir=environments/${{ matrix.environment }} init
+        run: terraform init -backend-config=../../backend-${{ matrix.environment }}.tfvars
 
       - name: Terraform Validate
-        run: terraform -chdir=environments/${{ matrix.environment }} validate
+        run: terraform validate
 
       - name: Terraform Plan
-        run: terraform -chdir=environments/${{ matrix.environment }} plan -out=tfplan-${{ matrix.environment }}.out
-
-      - name: Upload Plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-${{ matrix.environment }}
-          path: environments/${{ matrix.environment }}/tfplan-${{ matrix.environment }}.out
+        run: terraform plan
 
   apply:
-    name: Terraform Apply with Manual Approval
-    needs: validate-plan
+    name: Terraform Apply (Manual Approval)
     runs-on: ubuntu-latest
+    needs: terraform
     if: github.ref == 'refs/heads/main'
 
     strategy:
       matrix:
         environment: [dev, prod]
 
-    environment:
-      name: ${{ matrix.environment }}
-      url: https://portal.azure.com/
-
-    permissions:
-      id-token: write
-      contents: read
+    defaults:
+      run:
+        working-directory: ./envs/${{ matrix.environment }}
 
     steps:
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Log in to Azure
+      - name: Azure Login with OIDC
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: 442a7a50-42e8-49e0-9dfd-a053c163688d
+          tenant-id: 0d86ebca-48d5-4826-8189-d00318a494f8
+          subscription-id: e48609b6-3f39-46be-9a77-f10816f3953b
 
-      - name: Setup Terraform
+      - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.7
-
-      - name: Terraform Init
-        run: terraform -chdir=environments/${{ matrix.environment }} init
-
-      - name: Download Plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan-${{ matrix.environment }}
-          path: environments/${{ matrix.environment }}
 
       - name: Terraform Apply
-        run: terraform -chdir=environments/${{ matrix.environment }} apply tfplan-${{ matrix.environment }}.out
+        run: terraform apply -auto-approve
