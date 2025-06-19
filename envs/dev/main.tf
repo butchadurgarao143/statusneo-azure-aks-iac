@@ -1,11 +1,11 @@
 module "aks" {
   source              = "../../modules/aks"
-  name                = "alpheya-prod-aks"
+  name                = "alpheya-dev-aks"
   location            = "centralus"
   resource_group_name = "alpheya-tfstate-rg"
-  dns_prefix          = "alpheya-prod"
+  dns_prefix          = "alpheya-dev"
   node_count          = 1
   tags = {
-    environment = "prod"
+    environment = "dev"
   }
 }
