@@ -1,6 +1,5 @@
 # 1. Initialize Azure CLI
 az login
-az login --tenant 0d86ebca-48d5-4826-8189-d00318a494f8
 
 # 2. Create resource group and storage for backend
 az group create -n alpheya-tfstate-rg -l eastus
@@ -35,7 +34,6 @@ git push -u origin main
 
 # 1. Initialize Azure CLI (already logged in from dev step)
 az login
-az login --tenant 0d86ebca-48d5-4826-8189-d00318a494f8
 
 # 2. (Skip resource group & storage creation if already done)
 
