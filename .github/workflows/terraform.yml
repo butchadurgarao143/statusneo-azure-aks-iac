@@ -1,5 +1,6 @@
 name: Terraform CI/CD
 
+# Trigger workflow on push or pull request to main branch
 on:
   push:
     branches:
@@ -95,4 +96,4 @@ jobs:
         run: terraform init -input=false -backend-config=../../backend-${{ matrix.environment }}.tfvars
 
       - name: Terraform Apply
-        run: terraform apply -input=false -auto-approve
+        run: terraform apply -input=false -auto-approve 
